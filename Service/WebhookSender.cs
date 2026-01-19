@@ -4,36 +4,22 @@ namespace WebSocketGateWay.Service
 {
     public class WebhookSender : IWebhookSender
     {
-        private readonly HttpClient _http;
-        private readonly IConfiguration _cfg;
-        private readonly ILogger<WebhookSender> _logger;
+        private readonly HttpClient _client;
+        private readonly IConfiguration _conf;
 
-        public WebhookSender(HttpClient http, IConfiguration cfg, ILogger<WebhookSender> logger)
+        public WebhookSender(HttpClient http, IConfiguration conf)
         {
-            _http = http;
-            _cfg = cfg;
-            _logger = logger;
+            _client = http;
+            _conf = conf;
         }
 
-        public async Task SendAsync(string rawMessage, CancellationToken ct = default)
+        public async Task SendAsync(string message, CancellationToken ct = default)
         {
-            var url = _cfg["Webhook:Url"];
+            var url = _conf["Webhook:Url"];
             if (string.IsNullOrWhiteSpace(url))
-                throw new InvalidOperationException("Missing config: Webhook:Url");
+                throw new InvalidOperationException("Missing Webhook:Url");
 
-            //var payload = new
-            //{
-            //    message = rawMessage,
-            //    receivedAt = DateTimeOffset.UtcNow
-            //};
-
-            var res = await _http.PostAsJsonAsync(url, rawMessage, ct);
-
-            if (!res.IsSuccessStatusCode)
-            {
-                var body = await res.Content.ReadAsStringAsync(ct);
-                _logger.LogWarning("Webhook failed: {Status} {Body}", (int)res.StatusCode, body);
-            }
+            await _client.PostAsJsonAsync(url, new { message, receivedAt = DateTimeOffset.UtcNow }, ct);
         }
     }
 }

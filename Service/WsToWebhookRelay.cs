@@ -1,6 +1,4 @@
-﻿using Microsoft.Extensions.Hosting;
-using Microsoft.Extensions.Logging;
-using WebSocketGateWay.Core.Interfaces;
+﻿using WebSocketGateWay.Core.Interfaces;
 
 namespace WebSocketGateWay.Service
 {
@@ -8,37 +6,19 @@ namespace WebSocketGateWay.Service
     {
         private readonly IWebSocketService _ws;
         private readonly IWebhookSender _webhook;
-        private readonly ILogger<WsToWebhookRelay> _logger;
 
-        public WsToWebhookRelay(IWebSocketService ws, IWebhookSender webhook, ILogger<WsToWebhookRelay> logger)
+        public WsToWebhookRelay(IWebSocketService ws, IWebhookSender webhook)
         {
             _ws = ws;
             _webhook = webhook;
-            _logger = logger;
         }
 
         public Task StartAsync(CancellationToken ct)
         {
-            _ws.OnMessageReceived += HandleMessageAsync;
+            _ws.OnMessageReceived += msg => _webhook.SendAsync(msg, ct);
             return Task.CompletedTask;
         }
 
-        public Task StopAsync(CancellationToken ct)
-        {
-            _ws.OnMessageReceived -= HandleMessageAsync;
-            return Task.CompletedTask;
-        }
-
-        private async Task HandleMessageAsync(string msg)
-        {
-            try
-            {
-                await _webhook.SendAsync(msg);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Failed to forward WS message to webhook");
-            }
-        }
+        public Task StopAsync(CancellationToken ct) => Task.CompletedTask;
     }
 }

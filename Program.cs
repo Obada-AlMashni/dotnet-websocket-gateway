@@ -11,11 +11,9 @@ builder.Services.AddSingleton<IWebSocketService, ExternalWebSocketService>();
 builder.Services.AddHostedService(sp =>
     (ExternalWebSocketService)sp.GetRequiredService<IWebSocketService>());
 
-//// Webhook sender with HttpClient
-//builder.Services.AddHttpClient<IWebhookSender, WebhookSender>();
-
-//// Relay (subscribes to WS messages and forwards to webhook)
-//builder.Services.AddHostedService<WsToWebhookRelay>();
+// Webhook sender with HttpClient
+builder.Services.AddHttpClient<IWebhookSender, WebhookSender>();
+builder.Services.AddHostedService<WsToWebhookRelay>();
 
 // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
 builder.Services.AddOpenApi();

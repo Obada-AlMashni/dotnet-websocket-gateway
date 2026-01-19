@@ -2,6 +2,6 @@
 {
     public interface IWebhookSender
     {
-        Task SendAsync(string rawMessage, CancellationToken ct = default);
+        Task SendAsync(string message, CancellationToken ct = default);
     }
 }

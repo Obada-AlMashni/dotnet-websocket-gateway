@@ -6,7 +6,7 @@ namespace WebSocketGateWay.Service;
 
 public sealed class ExternalWebSocketService : BackgroundService, IWebSocketService
 {
-    private readonly IConfiguration _cfg;
+    private readonly IConfiguration _conf;
     private readonly ILogger<ExternalWebSocketService> _logger;
     private readonly IHttpClientFactory _httpFactory;
     private ClientWebSocket? _ws;
@@ -15,11 +15,11 @@ public sealed class ExternalWebSocketService : BackgroundService, IWebSocketServ
     public event Func<string, Task>? OnMessageReceived;
 
     public ExternalWebSocketService(
-        IConfiguration cfg,
+        IConfiguration conf,
         ILogger<ExternalWebSocketService> logger,
         IHttpClientFactory httpFactory)
     {
-        _cfg = cfg;
+        _conf = conf;
         _logger = logger;
         _httpFactory = httpFactory;
     }
@@ -45,7 +45,7 @@ public sealed class ExternalWebSocketService : BackgroundService, IWebSocketServ
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
-        var wsUrl = _cfg["ExternalWs:Url"];
+        var wsUrl = _conf["ExternalWs:Url"];
         if (string.IsNullOrWhiteSpace(wsUrl))
             throw new InvalidOperationException("Missing config ExternalWs:Url");
 
@@ -56,7 +56,7 @@ public sealed class ExternalWebSocketService : BackgroundService, IWebSocketServ
                 _ws = new ClientWebSocket();
 
                 // Optional: if your WS requires headers
-                var apiKey = _cfg["ExternalWs:ApiKey"];
+                var apiKey = _conf["ExternalWs:ApiKey"];
                 if (!string.IsNullOrWhiteSpace(apiKey))
                     _ws.Options.SetRequestHeader("X-Api-Key", apiKey);
 
@@ -101,7 +101,7 @@ public sealed class ExternalWebSocketService : BackgroundService, IWebSocketServ
                     {
                         await ws.CloseAsync(WebSocketCloseStatus.NormalClosure, "closing", ct);
                     }
-                    catch { /* ignore */ }
+                    catch {  }
 
                     return;
                 }
@@ -114,45 +114,14 @@ public sealed class ExternalWebSocketService : BackgroundService, IWebSocketServ
 
             if (OnMessageReceived is not null)
             {
-                try { await OnMessageReceived.Invoke(msg); }
-                catch (Exception ex) { _logger.LogError(ex, "OnMessageReceived handler failed"); }
+                try
+                {
+                    await OnMessageReceived.Invoke(msg);
+                }
+                catch (Exception ex) { 
+                    _logger.LogError(ex, "OnMessageReceived handler failed"); 
+                }
             }
-
-            await ForwardToWebhookAsync(msg, ct);
-        }
-    }
-
-    private async Task ForwardToWebhookAsync(string msg, CancellationToken ct)
-    {
-        var webhookUrl = _cfg["Webhook:Url"];
-        if (string.IsNullOrWhiteSpace(webhookUrl))
-        {
-            _logger.LogWarning("Webhook:Url not configured, skipping forward.");
-            return;
-        }
-
-        var client = _httpFactory.CreateClient();
-
-        //var payload = new
-        //{
-        //    message = msg,
-        //    receivedAt = DateTimeOffset.UtcNow
-        //};
-
-        try
-        {
-            using var res = await client.PostAsJsonAsync(webhookUrl, msg, ct);
-
-            if (!res.IsSuccessStatusCode)
-            {
-                var body = await res.Content.ReadAsStringAsync(ct);
-                _logger.LogWarning("Webhook forward failed: {Status} {Body}",
-                    (int)res.StatusCode, body);
-            }
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Webhook forward threw exception");
         }
     }
 }
