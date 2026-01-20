@@ -1,4 +1,5 @@
-﻿using WebSocketGateWay.Core.Interfaces;
+﻿using System.Text.Json;
+using WebSocketGateWay.Core.Interfaces;
 
 namespace WebSocketGateWay.Service
 {
@@ -19,7 +20,13 @@ namespace WebSocketGateWay.Service
             if (string.IsNullOrWhiteSpace(url))
                 throw new InvalidOperationException("Missing Webhook:Url");
 
-            await _client.PostAsJsonAsync(url, new { message, receivedAt = DateTimeOffset.UtcNow }, ct);
+            await _client.PostAsJsonAsync(url,
+                new
+                {
+                    response = JsonSerializer.Deserialize<object>(message),
+                    receivedAt = DateTimeOffset.UtcNow
+                }
+            , ct);
         }
     }
 }

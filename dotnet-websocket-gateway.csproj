@@ -13,12 +13,6 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <Compile Remove="Core\Interfaces\IWebhookSender.cs" />
-    <Compile Remove="Service\WebhookSender.cs" />
-    <Compile Remove="Service\WsToWebhookRelay.cs" />
-  </ItemGroup>
-
-  <ItemGroup>
     <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="9.0.10" />
   </ItemGroup>
 
